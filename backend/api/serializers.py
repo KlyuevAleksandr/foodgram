@@ -20,3 +20,6 @@ class UserSerializer(DjoserUserSerializer):
             and request.user.subscriptions.filter(subscribed_to=obj).exists()
         )
 
+class AvatarSerializer(serializers.Serializer):
+    avatar = Base64ImageField(required=True)
+
