@@ -48,7 +48,9 @@ class UserViewSet(DjoserUserViewSet):
         serializer = AvatarSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        request.user.avatar = serializer.validated_data["avatar"]
+        data = serializer.validated_data["avatar"]
+
+        request.user.avatar = data
         request.user.save()
 
         return Response(
@@ -58,20 +60,18 @@ class UserViewSet(DjoserUserViewSet):
 
     @upload_avatar.mapping.delete
     def delete_avatar(self, request, *args, **kwargs):
-        user = request.user
-
-        if not user.avatar:
+        if not request.user.avatar:
             return Response(
                 {'detail': 'Аватар не найден'},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
         try:
-            if default_storage.exists(user.avatar.path):
-                default_storage.delete(user.avatar.path)
+            if default_storage.exists(request.user.avatar.path):
+                default_storage.delete(request.user.avatar.path)
 
-            user.avatar = None
-            user.save()
+            request.user.avatar = None
+            request.user.save()
 
             return Response(status=status.HTTP_204_NO_CONTENT)
 
