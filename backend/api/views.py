@@ -3,25 +3,48 @@ from djoser.views import UserViewSet as DjoserUserViewSet
 from django.contrib.auth import get_user_model
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from django.db.models.functions import Lower
+from rest_framework.viewsets import ReadOnlyModelViewSet
 from django.core.files.storage import default_storage
 
 from api.paginations import Pagination
-from api.serializers import UserSerializer, AvatarSerializer
+from api.serializers import UserSerializer, AvatarSerializer, IngSerializer, TagSerializer
+from recipes.models import Tag, Ingredient
 
 User = get_user_model()
+
+
+class TagViewSet(ReadOnlyModelViewSet):
+    queryset = Tag.objects.all()
+    serializer_class = TagSerializer
+    pagination_class = None
+
+
+class IngViewSet(ReadOnlyModelViewSet):
+    pagination_class = None
+    queryset = Ingredient.objects.all().order_by(
+        Lower('name')
+    )
+    serializer_class = IngSerializer
 
 
 class UserViewSet(DjoserUserViewSet):
     pagination_class = Pagination
 
     def get_permissions(self):
-        if self.action in ['list', 'retrieve']:
-            return [permissions.AllowAny()]
+        data = [permissions.AllowAny()]
+        if self.action == 'list':
+            return data
+        elif self.action == 'retrieve':
+            return data
         return super().get_permissions()
 
     def get_serializer_class(self):
-        if self.action in ['list', 'retrieve']:
-            return UserSerializer
+        data = UserSerializer
+        if self.action == 'list':
+            return data
+        elif self.action == 'retrieve':
+            return data
         return super().get_serializer_class()
 
 
@@ -53,8 +76,10 @@ class UserViewSet(DjoserUserViewSet):
         request.user.avatar = data
         request.user.save()
 
+        url = request.user.avatar.url
+
         return Response(
-            {"avatar": request.user.avatar.url},
+            {"avatar": url},
             status=status.HTTP_200_OK
         )
 

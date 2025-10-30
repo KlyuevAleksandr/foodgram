@@ -1,43 +1,100 @@
 from rest_framework import serializers
+from django.contrib.auth import get_user_model
 from drf_extra_fields.fields import Base64ImageField
 from djoser.serializers import (
     UserSerializer as DjoserUserSerializer
 )
-from recipes.models import Recipe
+from recipes.models import Recipe, Tag, Ingredient
 from users.models import Subscription
+
+User = get_user_model()
+
+
+class IngSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Ingredient
+        fields = '__all__'
+
+
+
+
+class TagSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Tag
+        fields = '__all__'
 
 
 class UserSerializer(DjoserUserSerializer):
     avatar = Base64ImageField(required=False, allow_null=True)
     is_subscribed = serializers.SerializerMethodField()
 
-    class Meta(DjoserUserSerializer.Meta):
-        fields = DjoserUserSerializer.Meta.fields + ('is_subscribed', 'avatar')
-        read_only_fields = ('id', 'is_subscribed')
-
     def get_is_subscribed(self, obj):
         request = self.context.get("request")
         return (
-            request and request.user.is_authenticated
-            and request.user.subscriptions.filter(subscribed_to=obj).exists()
+                request and request.user.is_authenticated
+                and request.user.subscriptions.filter(subscribed_to=obj).exists()
         )
+
+    class Meta:
+        model = User
+        fields = (
+            'username',
+            'first_name',
+            'last_name',
+            'id',
+            'email',
+            'is_subscribed',
+            'avatar'
+        )
+        read_only_fields = (
+            'id',
+            'is_subscribed'
+        )
+
+
 
 class AvatarSerializer(serializers.Serializer):
     avatar = Base64ImageField(required=True)
 
-class RecipeShortSerializer(serializers.ModelSerializer):
+
+class SimRecipeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Recipe
-        fields = ("id", "name", "image", "cooking_time")
-        read_only_fields = fields
+        fields = [
+            "id",
+            "name",
+            "image",
+            "cooking_time"
+        ]
+        read_only_fields = [
+            "id",
+            "name",
+            "image",
+            "cooking_time"
+        ]
 
-class UserSubscriptionSerializer(UserSerializer):
+
+class UserSubSerializer(UserSerializer):
     recipes = serializers.SerializerMethodField()
     recipes_count = serializers.ReadOnlyField(source="recipes.count")
 
     class Meta(UserSerializer.Meta):
-        fields = UserSerializer.Meta.fields + ("recipes", "recipes_count")
-        read_only_fields = fields
+        fields = [
+            "id",
+            "name",
+            "image",
+            "cooking_time",
+            "recipes",
+            "recipes_count"
+        ]
+        read_only_fields = [
+            "id",
+            "name",
+            "image",
+            "cooking_time",
+            "recipes",
+            "recipes_count"
+        ]
 
     def validate(self, data):
         u = self.context['request'].user
@@ -50,15 +107,14 @@ class UserSubscriptionSerializer(UserSerializer):
                 }
             )
         if Subscription.objects.filter(
-            user=u,
-            subscribed_to=a
+                user=u,
+                subscribed_to=a
         ).exists():
             raise serializers.ValidationError(
                 {'subscribed_to': 'Вы уже подписаны на этого пользователя'}
             )
         else:
             return data
-
 
     def get_recipes(self, obj):
         request = self.context.get("request")
@@ -70,6 +126,6 @@ class UserSubscriptionSerializer(UserSerializer):
         except (ValueError, TypeError):
             pass
 
-        return RecipeShortSerializer(
+        return SimRecipeSerializer(
             recipes, many=True, context=self.context
         ).data
