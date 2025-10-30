@@ -4,6 +4,7 @@ from drf_extra_fields.fields import Base64ImageField
 from djoser.serializers import (
     UserSerializer as DjoserUserSerializer
 )
+
 from recipes.models import Recipe, Tag, Ingredient, ShoppingCart, Favorite
 from users.models import Sub
 
@@ -33,7 +34,6 @@ class UserSerializer(DjoserUserSerializer):
         if not request.user.is_authenticated:
             return False
         return request.user.subscriptions.filter(subscribed_to=obj).exists()
-
 
     class Meta:
         model = User
@@ -82,7 +82,6 @@ class UserSubSerializer(serializers.ModelSerializer):
     def get_recipes_count(self, obj):
         return obj.recipes.count()
 
-
     class Meta:
         fields = (
             "email",
@@ -115,7 +114,6 @@ class UserSubSerializer(serializers.ModelSerializer):
         if not request.user.is_authenticated:
             return False
         return request.user.subscriptions.filter(subscribed_to=obj).exists()
-
 
     def validate(self, data):
         u = self.context['request'].user
@@ -175,8 +173,10 @@ class FavoriteSerializer(serializers.ModelSerializer):
 
 
 class ShoppingCartSerializer(serializers.ModelSerializer):
-    user = serializers.HiddenField(default=serializers.CurrentUserDefault(), write_only=True)
-    recipe = serializers.PrimaryKeyRelatedField(queryset=Recipe.objects.all(), write_only=True)
+    user = serializers.HiddenField(default=serializers.CurrentUserDefault(),
+                                   write_only=True)
+    recipe = serializers.PrimaryKeyRelatedField(queryset=Recipe.objects.all(),
+                                                write_only=True)
 
     class Meta:
         model = ShoppingCart

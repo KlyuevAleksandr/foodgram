@@ -20,10 +20,12 @@ class CustomUserAdmin(UserAdmin):
             'fields': ('username', 'password')
         }),
         ('Персональная информация', {
-            'fields': ('email', 'first_name', 'last_name', 'avatar', 'get_avatar_preview')
+            'fields': ('email', 'first_name', 'last_name', 'avatar',
+                       'get_avatar_preview')
         }),
         ('Разрешения', {
-            'fields': ('is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')
+            'fields': ('is_active', 'is_staff', 'is_superuser', 'groups',
+                       'user_permissions')
         }),
         ('Важные даты', {
             'fields': ('last_login', 'date_joined')
@@ -33,7 +35,8 @@ class CustomUserAdmin(UserAdmin):
     add_fieldsets = (
         (None, {
             'classes': ('wide',),
-            'fields': ('email', 'username', 'first_name', 'last_name', 'password1', 'password2'),
+            'fields': ('email', 'username', 'first_name', 'last_name',
+                       'password1', 'password2'),
         }),
     )
 
@@ -43,7 +46,8 @@ class CustomUserAdmin(UserAdmin):
     def get_avatar_preview(self, obj):
         if obj.avatar:
             return format_html(
-                '<img src="{}" style="max-height: 100px; max-width: 100px; border-radius: 50%;" />',
+                '<img src="{}" style="max-height: 100px; '
+                'max-width: 100px; border-radius: 50%;" />',
                 obj.avatar.url
             )
         return "Аватар не установлен"
@@ -69,7 +73,8 @@ class SubscriberInline(admin.TabularInline):
 
 @admin.register(Sub)
 class SubAdmin(admin.ModelAdmin):
-    list_display = ('id', 'user', 'subscribed_to', 'get_user_email', 'get_author_email')
+    list_display = ('id', 'user', 'subscribed_to', 'get_user_email',
+                    'get_author_email')
     list_display_links = ('id', 'user')
     search_fields = (
         'user__username', 'user__email',

@@ -12,6 +12,7 @@ from rest_framework import (
     response
 )
 from django.urls import reverse
+
 from recipes.models import (
     Recipe,
     Favorite,
@@ -22,8 +23,9 @@ from .recipes_permissions import IsAuthorOrReadOnly
 from .recipes_serializers import (
     RecipeSerializer,
 )
-from .serializers import SimRecipeSerializer, FavoriteSerializer, ShoppingCartSerializer
+from .serializers import SimRecipeSerializer, FavoriteSerializer
 from .recipes_filters import RecipeFilter
+
 
 class RecipeViewSet(viewsets.ModelViewSet):
     queryset = Recipe.objects.all()
@@ -60,7 +62,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
             status=status.HTTP_201_CREATED
         )
 
-
     @favorite.mapping.delete
     def remove_from_favorite(self, request, pk=None):
         recipe = get_object_or_404(Recipe, pk=pk)
@@ -71,7 +72,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
         if deleted_count == 0:
             return response.Response(
-                {'errors': f'Рецепт не найден в избраном'},
+                {'errors': 'Рецепт не найден в избраном'},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -95,7 +96,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
         if not created:
             return response.Response(
-                {"errors": f"Рецепт корзине уже есть"},
+                {"errors": "Рецепт корзине уже есть"},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
@@ -107,8 +108,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
             serializer.data,
             status=status.HTTP_201_CREATED
         )
-
-
 
     @shopping_cart.mapping.delete
     def remove_from_shopping_cart(self, request, pk=None):
@@ -140,7 +139,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     @decorators.action(
         detail=False,
         methods=(
-                "get",
+            "get",
         ),
         url_path="download_shopping_cart",
         permission_classes=[permissions.IsAuthenticated],

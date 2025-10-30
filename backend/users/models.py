@@ -41,7 +41,6 @@ class User(AbstractUser):
         return f"{self.username} - {self.email}"
 
 
-
 class Sub(models.Model):
     user = models.ForeignKey(
         User,

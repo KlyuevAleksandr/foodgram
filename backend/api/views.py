@@ -9,7 +9,8 @@ from django.core.files.storage import default_storage
 from django_filters.rest_framework import DjangoFilterBackend
 
 from .paginations import Pagination
-from .serializers import UserSerializer, AvatarSerializer, IngSerializer, TagSerializer, UserSubSerializer
+from .serializers import UserSerializer, AvatarSerializer, IngSerializer, \
+    TagSerializer, UserSubSerializer
 from recipes.models import Tag, Ingredient
 from .filters import IngFilter
 from users.models import Sub
@@ -66,11 +67,11 @@ class UserViewSet(DjoserUserViewSet):
 
     @action(
         methods=(
-                "put",
+            "put",
         ),
         detail=False,
         permission_classes=(
-                permissions.IsAuthenticated,
+            permissions.IsAuthenticated,
         ),
         url_path="me/avatar",
     )
@@ -112,7 +113,6 @@ class UserViewSet(DjoserUserViewSet):
                 {'detail': 'Аватар ошибка'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-
 
     @action(
         detail=True,

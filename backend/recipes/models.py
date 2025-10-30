@@ -5,14 +5,14 @@ from django.conf import settings
 
 class Tag(models.Model):
     name = models.CharField(
-        verbose_name="Название тега",
+        verbose_name="Название",
         max_length=256,
         unique=True,
     )
     slug = models.SlugField(
-        verbose_name="Слаг тега",
-        max_length=256,
+        verbose_name="Слаг",
         unique=True,
+        max_length=256,
     )
 
     class Meta:
@@ -26,7 +26,7 @@ class Tag(models.Model):
 
 class Ingredient(models.Model):
     name = models.CharField(
-        verbose_name="Название ингредиента",
+        verbose_name="Название",
         max_length=128,
     )
     measurement_unit = models.CharField(
@@ -52,15 +52,15 @@ class Ingredient(models.Model):
 class Recipe(models.Model):
     author = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        verbose_name="Автор рецепта",
+        verbose_name="Автор",
         on_delete=models.CASCADE,
     )
     name = models.CharField(
-        verbose_name="Название рецепта",
+        verbose_name="Название",
         max_length=256,
     )
     text = models.TextField(
-        verbose_name="Описание рецепта",
+        verbose_name="Описание",
     )
     image = models.ImageField(
         verbose_name="Изображение блюда",
@@ -135,7 +135,7 @@ class Favorite(models.Model):
 
     class Meta:
         verbose_name = "Избранное"
-        verbose_name_plural = "Избранные рецепты"
+        verbose_name_plural = "Избранные"
         default_related_name = "favorites"
         constraints = [
             models.UniqueConstraint(

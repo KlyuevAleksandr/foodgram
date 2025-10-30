@@ -2,6 +2,7 @@ from django_filters import rest_framework as df_filters
 
 from recipes.models import Recipe, Tag
 
+
 class RecipeFilter(df_filters.FilterSet):
     is_in_shopping_cart = df_filters.BooleanFilter(
         method='filter_shopping_cart'
@@ -30,9 +31,9 @@ class RecipeFilter(df_filters.FilterSet):
             return queryset
 
         if self.request.user.is_authenticated:
-            return queryset.filter(**{"shopping_carts__user": self.request.user})
+            return queryset.filter(
+                **{"shopping_carts__user": self.request.user})
         return queryset.none()
-
 
     def filter_favorites(self, queryset, name, value):
         if not value:

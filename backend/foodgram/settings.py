@@ -143,5 +143,4 @@ MEDIA_ROOT = "media"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-CSRF_TRUSTED_ORIGINS = ['https://*',]
-
+CSRF_TRUSTED_ORIGINS = ['https://*']

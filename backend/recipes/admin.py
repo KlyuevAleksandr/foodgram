@@ -53,20 +53,26 @@ class RecipeAdmin(admin.ModelAdmin):
     ordering = ('name',)
 
     def get_ingredients(self, obj):
-        return ", ".join([ingredient.name for ingredient in obj.ingredients.all()])
+        return ", ".join([
+            ingredient.name for ingredient in obj.ingredients.all()
+        ])
+
     get_ingredients.short_description = 'Ингредиенты'
 
     def get_tags(self, obj):
         return ", ".join([tag.name for tag in obj.tags.all()])
+
     get_tags.short_description = 'Теги'
 
     def get_image_preview(self, obj):
         if obj.image:
             return format_html(
-                '<img src="{}" style="max-height: 200px; max-width: 200px;" />',
+                '<img src="{}" style="max-height: '
+                '200px; max-width: 200px;" />',
                 obj.image.url
             )
         return "Нет изображения"
+
     get_image_preview.short_description = 'Предпросмотр изображения'
 
 

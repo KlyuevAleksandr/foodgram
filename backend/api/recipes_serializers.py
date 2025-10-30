@@ -11,7 +11,6 @@ from recipes.models import (
 from .serializers import UserSerializer, TagSerializer
 
 
-
 class RecipeIngSerializer(serializers.ModelSerializer):
     id = serializers.PrimaryKeyRelatedField(
         queryset=Ingredient.objects.all(),
@@ -37,7 +36,6 @@ class RecipeIngSerializer(serializers.ModelSerializer):
             "amount"
         )
         model = RecipeIng
-
 
 
 class RecipeSerializer(serializers.ModelSerializer):
