@@ -75,7 +75,7 @@ class Recipe(models.Model):
     ingredients = models.ManyToManyField(
         Ingredient,
         verbose_name="Ингредиенты",
-        through="RecipeIngredient",
+        through="RecipeIng",
     )
     tags = models.ManyToManyField(
         Tag,
@@ -92,7 +92,7 @@ class Recipe(models.Model):
         return f"{self.author}) {self.name}"
 
 
-class RecipeIngredient(models.Model):
+class RecipeIng(models.Model):
     recipe = models.ForeignKey(
         Recipe,
         verbose_name="Рецепт",

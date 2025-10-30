@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import Tag, Ingredient, Recipe, RecipeIngredient, Favorite, ShoppingCart
+from .models import Tag, Ingredient, Recipe, RecipeIng, Favorite, ShoppingCart
 
 
 @admin.register(Tag)
@@ -22,8 +22,8 @@ class IngredientAdmin(admin.ModelAdmin):
     ordering = ('name',)
 
 
-class RecipeIngredientInline(admin.TabularInline):
-    model = RecipeIngredient
+class RecipeIngInline(admin.TabularInline):
+    model = RecipeIng
     extra = 1
     min_num = 1
     verbose_name = "Ингредиент"
@@ -40,7 +40,7 @@ class RecipeAdmin(admin.ModelAdmin):
     search_fields = ('name', 'author__username', 'author__email')
     list_filter = ('tags', 'author')
     filter_horizontal = ('tags',)
-    inlines = (RecipeIngredientInline,)
+    inlines = (RecipeIngInline,)
     readonly_fields = ('get_image_preview',)
     fieldsets = (
         ('Основная информация', {
@@ -70,7 +70,7 @@ class RecipeAdmin(admin.ModelAdmin):
     get_image_preview.short_description = 'Предпросмотр изображения'
 
 
-@admin.register(RecipeIngredient)
+@admin.register(RecipeIng)
 class RecipeIngredientAdmin(admin.ModelAdmin):
     list_display = ('id', 'recipe', 'ingredient', 'amount')
     list_display_links = ('id', 'recipe')

@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.utils.html import format_html
-from .models import User, Subscription
+from .models import User, Sub
 
 
 @admin.register(User)
@@ -52,7 +52,7 @@ class CustomUserAdmin(UserAdmin):
 
 
 class SubscriptionInline(admin.TabularInline):
-    model = Subscription
+    model = Sub
     fk_name = 'user'
     extra = 1
     verbose_name = "Подписка"
@@ -60,15 +60,15 @@ class SubscriptionInline(admin.TabularInline):
 
 
 class SubscriberInline(admin.TabularInline):
-    model = Subscription
+    model = Sub
     fk_name = 'subscribed_to'
     extra = 1
     verbose_name = "Подписчик"
     verbose_name_plural = "Мои подписчики"
 
 
-@admin.register(Subscription)
-class SubscriptionAdmin(admin.ModelAdmin):
+@admin.register(Sub)
+class SubAdmin(admin.ModelAdmin):
     list_display = ('id', 'user', 'subscribed_to', 'get_user_email', 'get_author_email')
     list_display_links = ('id', 'user')
     search_fields = (

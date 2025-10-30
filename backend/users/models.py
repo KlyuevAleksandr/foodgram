@@ -42,7 +42,7 @@ class User(AbstractUser):
 
 
 
-class Subscription(models.Model):
+class Sub(models.Model):
     user = models.ForeignKey(
         User,
         verbose_name="Подписчик",

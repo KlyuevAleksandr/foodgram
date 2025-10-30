@@ -6,10 +6,13 @@ from rest_framework.response import Response
 from django.db.models.functions import Lower
 from rest_framework.viewsets import ReadOnlyModelViewSet
 from django.core.files.storage import default_storage
+from django_filters.rest_framework import DjangoFilterBackend
 
-from api.paginations import Pagination
-from api.serializers import UserSerializer, AvatarSerializer, IngSerializer, TagSerializer
+from .paginations import Pagination
+from .serializers import UserSerializer, AvatarSerializer, IngSerializer, TagSerializer, UserSubSerializer
 from recipes.models import Tag, Ingredient
+from .filters import IngFilter
+from users.models import Sub
 
 User = get_user_model()
 
@@ -22,6 +25,8 @@ class TagViewSet(ReadOnlyModelViewSet):
 
 class IngViewSet(ReadOnlyModelViewSet):
     pagination_class = None
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = IngFilter
     queryset = Ingredient.objects.all().order_by(
         Lower('name')
     )
@@ -47,8 +52,6 @@ class UserViewSet(DjoserUserViewSet):
             return data
         return super().get_serializer_class()
 
-
-
     @action(
         detail=False,
         methods=["get"],
@@ -62,9 +65,13 @@ class UserViewSet(DjoserUserViewSet):
         return Response(serializer.data)
 
     @action(
+        methods=(
+                "put",
+        ),
         detail=False,
-        methods=["put"],
-        permission_classes=[permissions.IsAuthenticated],
+        permission_classes=(
+                permissions.IsAuthenticated,
+        ),
         url_path="me/avatar",
     )
     def upload_avatar(self, request, *args, **kwargs):
@@ -100,8 +107,74 @@ class UserViewSet(DjoserUserViewSet):
 
             return Response(status=status.HTTP_204_NO_CONTENT)
 
-        except Exception as e:
+        except Exception:
             return Response(
-                {'detail': f'Ошибка при удалении аватара: {str(e)}'},
+                {'detail': 'Аватар ошибка'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
+
+
+    @action(
+        detail=True,
+        methods=["post", "delete"],
+        permission_classes=[permissions.IsAuthenticated],
+        url_path="subscribe",
+    )
+    def subscribe(self, request, *args, **kwargs):
+        author = self.get_object()
+        user = request.user
+        if request.method == 'POST':
+            return self._create_subscription(user, author, request)
+        return self._delete_subscription(user, author)
+
+    def _create_subscription(self, user, author, request):
+        serializer = UserSubSerializer(
+            data={},
+            context={
+                'request': request,
+                'view': self
+            }
+        )
+
+        if not serializer.is_valid():
+            return Response(
+                serializer.errors,
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        subscription = Sub(user=user, subscribed_to=author)
+        subscription.save()
+
+        data = UserSubSerializer(
+            author, context={'request': request}
+        ).data
+        return Response(data, status=status.HTTP_201_CREATED)
+
+    def _delete_subscription(self, user, author):
+        deleted_count, _ = Sub.objects.filter(
+            user=user,
+            subscribed_to=author
+        ).delete()
+
+        if not deleted_count:
+            return Response(
+                {'errors': 'Подписка не найдена.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(
+        detail=False,
+        methods=["get"],
+        permission_classes=[permissions.IsAuthenticated],
+        url_path="subscriptions",
+    )
+    def subscriptions(self, request, *args, **kwargs):
+        user = request.user
+        queryset = User.objects.filter(subscribers__user=user)
+        pages = self.paginate_queryset(queryset)
+        serializer = UserSubSerializer(
+            pages, many=True, context={"request": request}
+        )
+        return self.get_paginated_response(serializer.data)
