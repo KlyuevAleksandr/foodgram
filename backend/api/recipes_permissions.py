@@ -2,16 +2,17 @@ from rest_framework.permissions import BasePermission, SAFE_METHODS
 
 
 class IsAuthorOrReadOnly(BasePermission):
+
     def has_permission(self, request, view):
         if request.method in SAFE_METHODS:
             return True
-        elif request.user.is_authenticated:
+        if request.user.is_authenticated:
             return True
         return False
 
-    def has_object_permission(self, request, view, obj):
+    def has_object_permission(self, request, view, recipe):
         if request.method in SAFE_METHODS:
             return True
-        elif obj.author == request.user:
+        if recipe.author == request.user:
             return True
         return False

@@ -1,11 +1,12 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.utils.html import format_html
+
 from .models import User, Sub
 
 
 @admin.register(User)
-class CustomUserAdmin(UserAdmin):
+class UserAdmin(UserAdmin):
     list_display = (
         'id', 'username', 'email', 'first_name', 'last_name',
         'get_avatar_preview', 'is_staff', 'is_active'
@@ -50,7 +51,7 @@ class CustomUserAdmin(UserAdmin):
                 'max-width: 100px; border-radius: 50%;" />',
                 obj.avatar.url
             )
-        return "Аватар не установлен"
+        return 'Аватар не установлен'
 
     get_avatar_preview.short_description = 'Предпросмотр аватара'
 
@@ -59,16 +60,16 @@ class SubscriptionInline(admin.TabularInline):
     model = Sub
     fk_name = 'user'
     extra = 1
-    verbose_name = "Подписка"
-    verbose_name_plural = "Мои подписки"
+    verbose_name = 'Подписка'
+    verbose_name_plural = 'Мои подписки'
 
 
 class SubscriberInline(admin.TabularInline):
     model = Sub
     fk_name = 'subscribed_to'
     extra = 1
-    verbose_name = "Подписчик"
-    verbose_name_plural = "Мои подписчики"
+    verbose_name = 'Подписчик'
+    verbose_name_plural = 'Мои подписчики'
 
 
 @admin.register(Sub)
@@ -95,4 +96,4 @@ class SubAdmin(admin.ModelAdmin):
 
 
 # Добавляем inline в админку пользователя
-CustomUserAdmin.inlines = [SubscriptionInline, SubscriberInline]
+UserAdmin.inlines = (SubscriptionInline, SubscriberInline)

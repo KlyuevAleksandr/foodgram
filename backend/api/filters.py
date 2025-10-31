@@ -11,6 +11,6 @@ class IngFilter(df_filters.FilterSet):
 
     class Meta:
         model = Ingredient
-        fields = [
+        fields = (
             'name',
-        ]
+        )

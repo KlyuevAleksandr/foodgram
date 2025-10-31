@@ -7,5 +7,4 @@ from recipes.models import Recipe
 def recipe_view(request, pk):
     if not Recipe.objects.filter(pk=pk).exists():
         raise Http404
-    else:
-        return redirect(f'recipes/{pk}/')
+    return redirect(f'recipes/{pk}/')

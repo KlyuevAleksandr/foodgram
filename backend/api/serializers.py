@@ -28,7 +28,7 @@ class UserSerializer(DjoserUserSerializer):
     is_subscribed = serializers.SerializerMethodField()
 
     def get_is_subscribed(self, obj):
-        request = self.context.get("request")
+        request = self.context.get('request')
         if not request:
             return False
         if not request.user.is_authenticated:
@@ -59,92 +59,80 @@ class AvatarSerializer(serializers.Serializer):
 class SimRecipeSerializer(serializers.ModelSerializer):
     class Meta:
         model = Recipe
-        fields = [
-            "id",
-            "name",
-            "image",
-            "cooking_time"
-        ]
-        read_only_fields = [
-            "id",
-            "name",
-            "image",
-            "cooking_time"
-        ]
+        fields = (
+            'id',
+            'name',
+            'image',
+            'cooking_time'
+        )
+        read_only_fields = (
+            'id',
+            'name',
+            'image',
+            'cooking_time'
+        )
 
 
-class UserSubSerializer(serializers.ModelSerializer):
+class UserSubSerializer(UserSerializer):
     recipes = serializers.SerializerMethodField()
     recipes_count = serializers.SerializerMethodField()
-    avatar = Base64ImageField(required=False, allow_null=True)
-    is_subscribed = serializers.SerializerMethodField()
 
     def get_recipes_count(self, obj):
         return obj.recipes.count()
 
     class Meta:
         fields = (
-            "email",
-            "id",
-            "username",
-            "first_name",
-            "last_name",
-            "is_subscribed",
-            "recipes",
-            "recipes_count",
-            "avatar",
+            'email',
+            'id',
+            'username',
+            'first_name',
+            'last_name',
+            'is_subscribed',
+            'recipes',
+            'recipes_count',
+            'avatar',
         )
         read_only_fields = (
-            "email",
-            "id",
-            "username",
-            "first_name",
-            "last_name",
-            "is_subscribed",
-            "recipes",
-            "recipes_count",
-            "avatar",
+            'email',
+            'id',
+            'username',
+            'first_name',
+            'last_name',
+            'is_subscribed',
+            'recipes',
+            'recipes_count',
+            'avatar',
         )
         model = User
 
-    def get_is_subscribed(self, obj):
-        request = self.context.get("request")
-        if not request:
-            return False
-        if not request.user.is_authenticated:
-            return False
-        return request.user.subscriptions.filter(subscribed_to=obj).exists()
-
     def validate(self, data):
-        u = self.context['request'].user
-        a = self.context['view'].get_object()
+        user = self.context['request'].user
+        author = self.context['view'].get_object()
 
-        if u == a:
+        if user == author:
             raise serializers.ValidationError(
                 {
                     'subscribed_to': 'Нельзя подписаться на самого себя'
                 }
             )
         if Sub.objects.filter(
-                user=u,
-                subscribed_to=a
+                user=user,
+                subscribed_to=author
         ).exists():
             raise serializers.ValidationError(
                 {'subscribed_to': 'Вы уже подписаны на этого пользователя'}
             )
-        else:
-            return data
+        return data
 
     def get_recipes(self, obj):
-        request = self.context.get("request")
+        request = self.context.get('request')
         recipes = obj.recipes.all()
-
+        limit = request.GET.get('recipes_limit')
         try:
-            limit = int(request.GET.get("recipes_limit"))
-            recipes = recipes[:limit]
+            limit = int(limit)
         except (ValueError, TypeError):
             pass
-
+        recipes = recipes[:limit]
         return SimRecipeSerializer(
             recipes, many=True, context=self.context
         ).data
@@ -167,7 +155,7 @@ class FavoriteSerializer(serializers.ModelSerializer):
 
         if Favorite.objects.filter(user=user, recipe=recipe).exists():
             raise serializers.ValidationError(
-                f"Рецепт '{recipe.name}' уже в избранном"
+                f'Рецепт "{recipe.name}" уже в избранном'
             )
         return data
 
@@ -190,7 +178,7 @@ class ShoppingCartSerializer(serializers.ModelSerializer):
         in_shop = ShoppingCart.objects.filter(user=user, recipe=recipe)
         if in_shop.exists():
             raise serializers.ValidationError(
-                f"Рецепт '{data['recipe'].name}' уже в корзине покупок"
+                f'Рецепт "{data["recipe"].name}" уже в корзине покупок'
             )
         return data
 
