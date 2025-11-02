@@ -138,15 +138,30 @@ class UserSubSerializer(UserSerializer):
         ).data
 
 
-class FavoriteSerializer(serializers.ModelSerializer):
+class SubscriptionDeleteSerializer(serializers.Serializer):
+    def validate(self, attrs):
+        request = self.context.get('request')
+        view = self.context.get('view')
+
+        if request and view:
+            author = view.get_object()
+            if not request.user.subscriptions.filter(
+                    subscribed_to=author).exists():
+                raise serializers.ValidationError('Подписка не найдена.')
+
+        return attrs
+
+
+class FavoriteShoppingCartSerializer(serializers.ModelSerializer):
     user = serializers.HiddenField(default=serializers.CurrentUserDefault())
     recipe = serializers.PrimaryKeyRelatedField(queryset=Recipe.objects.all())
 
     class Meta:
-        fields = (
-            'user',
-            'recipe'
-        )
+        fields = ('user', 'recipe')
+
+
+class FavoriteSerializer(FavoriteShoppingCartSerializer):
+    class Meta(FavoriteShoppingCartSerializer.Meta):
         model = Favorite
 
     def validate(self, data):
@@ -155,36 +170,31 @@ class FavoriteSerializer(serializers.ModelSerializer):
 
         if Favorite.objects.filter(user=user, recipe=recipe).exists():
             raise serializers.ValidationError(
-                f'Рецепт "{recipe.name}" уже в избранном'
+                f"Рецепт '{recipe.name}' уже в избранном"
             )
         return data
 
 
-class ShoppingCartSerializer(serializers.ModelSerializer):
-    user = serializers.HiddenField(default=serializers.CurrentUserDefault(),
-                                   write_only=True)
-    recipe = serializers.PrimaryKeyRelatedField(queryset=Recipe.objects.all(),
-                                                write_only=True)
-
-    class Meta:
+class ShoppingCartSerializer(FavoriteShoppingCartSerializer):
+    class Meta(FavoriteShoppingCartSerializer.Meta):
         model = ShoppingCart
-        fields = (
-            'user',
-            'recipe'
-        )
+        extra_kwargs = {
+            'recipe': {'write_only': True},
+            'user': {'write_only': True}
+        }
 
     def validate(self, data):
-        user, recipe = data['user'], data['recipe']
-        in_shop = ShoppingCart.objects.filter(user=user, recipe=recipe)
-        if in_shop.exists():
+        user = data['user']
+        recipe = data['recipe']
+
+        if ShoppingCart.objects.filter(user=user, recipe=recipe).exists():
             raise serializers.ValidationError(
-                f'Рецепт "{data["recipe"].name}" уже в корзине покупок'
+                f"Рецепт '{recipe.name}' уже в корзине покупок"
             )
         return data
 
     def to_representation(self, instance):
-        data = SimRecipeSerializer(
+        return SimRecipeSerializer(
             instance.recipe,
             context=self.context
         ).data
-        return data

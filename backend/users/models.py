@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.contrib.auth.validators import UnicodeUsernameValidator
+from django.conf import settings
 
 
 class User(AbstractUser):
@@ -12,7 +13,7 @@ class User(AbstractUser):
         verbose_name='Логин',
         max_length=150,
         unique=True,
-        validators=(UnicodeUsernameValidator(), ),
+        validators=(UnicodeUsernameValidator(),),
     )
     first_name = models.CharField(
         verbose_name='Имя',
@@ -29,7 +30,7 @@ class User(AbstractUser):
         default='',
     )
 
-    USERNAME_FIELD = 'email'
+    USERNAME_FIELD = settings.USERNAME_FIELD
     REQUIRED_FIELDS = ('username', 'first_name', 'last_name')
 
     class Meta:

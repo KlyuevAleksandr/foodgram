@@ -2,6 +2,7 @@ from rest_framework import permissions, status
 from djoser.views import UserViewSet as DjoserUserViewSet
 from django.contrib.auth import get_user_model
 from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from django.db.models.functions import Lower
 from rest_framework.viewsets import ReadOnlyModelViewSet
@@ -11,7 +12,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from .paginations import Pagination
 from .serializers import (
     UserSerializer, AvatarSerializer, IngSerializer,
-    TagSerializer, UserSubSerializer
+    TagSerializer, UserSubSerializer, SubscriptionDeleteSerializer
 )
 from recipes.models import Tag, Ingredient
 from .filters import IngFilter
@@ -28,7 +29,7 @@ class TagViewSet(ReadOnlyModelViewSet):
 
 class IngViewSet(ReadOnlyModelViewSet):
     pagination_class = None
-    filter_backends = (DjangoFilterBackend, )
+    filter_backends = (DjangoFilterBackend,)
     filterset_class = IngFilter
     queryset = Ingredient.objects.all().order_by(
         Lower('name')
@@ -40,7 +41,7 @@ class UserViewSet(DjoserUserViewSet):
     pagination_class = Pagination
 
     def get_permissions(self):
-        data = (permissions.AllowAny(), )
+        data = (permissions.AllowAny(),)
         if self.action == 'list':
             return data
         elif self.action == 'retrieve':
@@ -57,9 +58,9 @@ class UserViewSet(DjoserUserViewSet):
 
     @action(
         detail=False,
-        methods=('get', ),
+        methods=('get',),
         url_path='me',
-        permission_classes=(permissions.IsAuthenticated, ),
+        permission_classes=(permissions.IsAuthenticated,),
     )
     def me(self, request, *args, **kwargs):
         serializer = UserSerializer(
@@ -68,13 +69,9 @@ class UserViewSet(DjoserUserViewSet):
         return Response(serializer.data)
 
     @action(
-        methods=(
-            'put',
-        ),
+        methods=('put',),
         detail=False,
-        permission_classes=(
-            permissions.IsAuthenticated,
-        ),
+        permission_classes=(permissions.IsAuthenticated,),
         url_path='me/avatar',
     )
     def upload_avatar(self, request, *args, **kwargs):
@@ -96,7 +93,7 @@ class UserViewSet(DjoserUserViewSet):
     @upload_avatar.mapping.delete
     def delete_avatar(self, request, *args, **kwargs):
         if not request.user.avatar:
-            raise ValueError("Аватар не найден")
+            raise ValueError('Аватар не найден')
 
         avatar_path = request.user.avatar.path
 
@@ -104,10 +101,7 @@ class UserViewSet(DjoserUserViewSet):
             if default_storage.exists(avatar_path):
                 default_storage.delete(avatar_path)
         except (OSError, IOError):
-            return Response(
-                {'detail': 'Ошибка при удалении файла аватара'},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+            raise ValidationError('Ошибка при удалении файла аватара')
 
         request.user.avatar = None
         request.user.save()
@@ -116,8 +110,8 @@ class UserViewSet(DjoserUserViewSet):
 
     @action(
         detail=True,
-        methods=('post', 'delete', ),
-        permission_classes=(permissions.IsAuthenticated, ),
+        methods=('post', 'delete',),
+        permission_classes=(permissions.IsAuthenticated,),
         url_path='subscribe',
     )
     def subscribe(self, request, *args, **kwargs):
@@ -147,26 +141,29 @@ class UserViewSet(DjoserUserViewSet):
         return Response(data, status=status.HTTP_201_CREATED)
 
     def _delete_subscription(self, user, author):
-        deleted_count, _ = user.subscriptions.filter(
-            subscribed_to=author).delete()
+        serializer = SubscriptionDeleteSerializer(
+            data={},
+            context={
+                'request': self.request,
+                'view': self
+            }
+        )
+        serializer.is_valid(raise_exception=True)
 
-        if not deleted_count:
-            return Response(
-                {'errors': 'Подписка не найдена.'},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        deleted_count, _ = user.subscriptions.filter(
+            subscribed_to=author
+        ).delete()
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(
         detail=False,
-        methods=('get', ),
-        permission_classes=(permissions.IsAuthenticated, ),
+        methods=('get',),
+        permission_classes=(permissions.IsAuthenticated,),
         url_path='subscriptions',
     )
     def subscriptions(self, request, *args, **kwargs):
-        user = request.user
-        queryset = User.objects.filter(subscribers__user=user)
+        queryset = User.objects.filter(subscribers__user=request.user)
         pages = self.paginate_queryset(queryset)
         serializer = UserSubSerializer(
             pages, many=True, context={'request': request}

@@ -101,7 +101,7 @@ class FavoriteAdmin(admin.ModelAdmin):
                      'user__email')
     list_filter = ('user', 'recipe')
     ordering = ('user',)
-    autocomplete_fields = ('user', 'recipe', )
+    autocomplete_fields = ('user', 'recipe',)
 
 
 @admin.register(ShoppingCart)

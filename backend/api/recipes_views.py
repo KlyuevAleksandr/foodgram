@@ -17,16 +17,16 @@ from django.urls import reverse
 from recipes.models import (
     Recipe,
     ShoppingCart,
-    RecipeIng
+    RecipeIng,
+    Favorite,
 )
-from rest_framework.exceptions import ValidationError
-
 from .paginations import Pagination
 from .recipes_permissions import IsAuthorOrReadOnly
 from .recipes_serializers import (
     RecipeSerializer,
 )
-from .serializers import SimRecipeSerializer, FavoriteSerializer
+from .serializers import SimRecipeSerializer, FavoriteSerializer, \
+    ShoppingCartSerializer
 from .recipes_filters import RecipeFilter
 
 
@@ -44,16 +44,11 @@ class RecipeViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
 
-    @decorators.action(
-        detail=True,
-        methods=('post',),
-        url_name='favorite',
-        permission_classes=(permissions.IsAuthenticated,),
-    )
-    def favorite(self, request, pk=None):
-        recipe = self.get_object()
+    @staticmethod
+    def _add_relation(request, pk, serializer_class, model, relation_name):
+        recipe = get_object_or_404(Recipe, id=pk)
 
-        serializer = FavoriteSerializer(
+        serializer = serializer_class(
             data={'recipe': recipe.id},
             context={'request': request}
         )
@@ -65,53 +60,51 @@ class RecipeViewSet(viewsets.ModelViewSet):
             status=status.HTTP_201_CREATED
         )
 
-    @favorite.mapping.delete
-    def remove_from_favorite(self, request, pk=None):
-        recipe = self.get_object()
-
-        deleted_count, _ = request.user.favorites.filter(
-            recipe=recipe).delete()
-
-        if deleted_count == 0:
-            raise ValidationError('Рецепт не найден в избранном')
-
-        return response.Response(status=status.HTTP_204_NO_CONTENT)
-
-    @decorators.action(
-        detail=True,
-        methods=('post',),
-        url_name='shopping_cart',
-        permission_classes=(permissions.IsAuthenticated,),
-    )
-    def shopping_cart(self, request, pk=None):
-        recipe = self.get_object()
-
-        shopping_cart_instance, created = ShoppingCart.objects.get_or_create(
-            user=request.user,
-            recipe=recipe
-        )
-
-        if not created:
-            raise ValidationError('Рецепт уже есть в корзине')
-
-        serializer = SimRecipeSerializer(recipe, context={'request': request})
-        return response.Response(
-            serializer.data,
-            status=status.HTTP_201_CREATED
-        )
-
-    @shopping_cart.mapping.delete
-    def remove_from_shopping_cart(self, request, pk=None):
-        recipe = self.get_object()
-        deleted_count, *_ = ShoppingCart.objects.filter(
+    @staticmethod
+    def _remove_relation(request, pk, model):
+        recipe = get_object_or_404(Recipe, pk=pk)
+        deleted_count, _ = model.objects.filter(
             user=request.user,
             recipe=recipe
         ).delete()
 
         if deleted_count == 0:
-            raise ValidationError('Рецепт не найден в корзине')
+            return response.Response(
+                {'errors': f'Рецепт не найден в {model._meta.verbose_name}'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         return response.Response(status=status.HTTP_204_NO_CONTENT)
+
+    @decorators.action(
+        detail=True,
+        methods=["post"],
+        url_name="favorite",
+        permission_classes=[permissions.IsAuthenticated],
+    )
+    def favorite(self, request, pk=None):
+        return self._add_relation(
+            request, pk, FavoriteSerializer, Favorite, 'избранном'
+        )
+
+    @favorite.mapping.delete
+    def remove_from_favorite(self, request, pk=None):
+        return self._remove_relation(request, pk, Favorite)
+
+    @decorators.action(
+        detail=True,
+        methods=["post"],
+        url_name="shopping_cart",
+        permission_classes=[permissions.IsAuthenticated],
+    )
+    def shopping_cart(self, request, pk=None):
+        return self._add_relation(
+            request, pk, ShoppingCartSerializer, ShoppingCart, 'корзине'
+        )
+
+    @shopping_cart.mapping.delete
+    def remove_from_shopping_cart(self, request, pk=None):
+        return self._remove_relation(request, pk, ShoppingCart)
 
     @decorators.action(
         detail=True,
@@ -128,7 +121,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     @decorators.action(
         detail=False,
         methods=(
-            'get',
+                'get',
         ),
         url_path='download_shopping_cart',
         permission_classes=(permissions.IsAuthenticated,),

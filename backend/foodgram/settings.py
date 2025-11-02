@@ -8,12 +8,14 @@ SECRET_KEY = config('SECRET_KEY')
 
 DEBUG = config('DEBUG', default=False, cast=bool)
 
-ALLOWED_HOSTS = ('*', )
+ALLOWED_HOSTS = ('*',)
 DATA_UPLOAD_MAX_MEMORY_SIZE = 20 * 1024 * 1024
 
 FILE_UPLOAD_MAX_MEMORY_SIZE = 20 * 1024 * 1024
 
 AUTH_USER_MODEL = 'users.User'
+
+USERNAME_FIELD = 'email'
 
 INSTALLED_APPS = (
     'django.contrib.admin',
