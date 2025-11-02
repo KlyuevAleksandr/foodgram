@@ -121,7 +121,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     @decorators.action(
         detail=False,
         methods=(
-                'get',
+            'get',
         ),
         url_path='download_shopping_cart',
         permission_classes=(permissions.IsAuthenticated,),
