@@ -2,17 +2,16 @@ from rest_framework import permissions, status
 from djoser.views import UserViewSet as DjoserUserViewSet
 from django.contrib.auth import get_user_model
 from rest_framework.decorators import action
-from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from django.db.models.functions import Lower
 from rest_framework.viewsets import ReadOnlyModelViewSet
-from django.core.files.storage import default_storage
 from django_filters.rest_framework import DjangoFilterBackend
 
 from .paginations import Pagination
 from .serializers import (
     UserSerializer, AvatarSerializer, IngSerializer,
-    TagSerializer, UserSubSerializer, SubscriptionDeleteSerializer
+    TagSerializer, UserSubSerializer, SubscriptionDeleteSerializer,
+    AvatarDeleteSerializer
 )
 from recipes.models import Tag, Ingredient
 from .filters import IngFilter
@@ -41,24 +40,17 @@ class UserViewSet(DjoserUserViewSet):
     pagination_class = Pagination
 
     def get_permissions(self):
-        data = (permissions.AllowAny(),)
-        if self.action == 'list':
-            return data
-        elif self.action == 'retrieve':
-            return data
+        if self.action in ['list', 'retrieve']:
+            return (permissions.AllowAny(),)
         return super().get_permissions()
 
     def get_serializer_class(self):
-        data = UserSerializer
-        if self.action == 'list':
-            return data
-        elif self.action == 'retrieve':
-            return data
+        if self.action in ['list', 'retrieve']:
+            return UserSerializer
         return super().get_serializer_class()
 
     @action(
         detail=False,
-        methods=('get',),
         url_path='me',
         permission_classes=(permissions.IsAuthenticated,),
     )
@@ -92,19 +84,12 @@ class UserViewSet(DjoserUserViewSet):
 
     @upload_avatar.mapping.delete
     def delete_avatar(self, request, *args, **kwargs):
-        if not request.user.avatar:
-            raise ValueError('Аватар не найден')
-
-        avatar_path = request.user.avatar.path
-
-        try:
-            if default_storage.exists(avatar_path):
-                default_storage.delete(avatar_path)
-        except (OSError, IOError):
-            raise ValidationError('Ошибка при удалении файла аватара')
-
-        request.user.avatar = None
-        request.user.save()
+        serializer = AvatarDeleteSerializer(
+            data={},
+            context={'request': request}
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
 
         return Response(status=status.HTTP_204_NO_CONTENT)
 

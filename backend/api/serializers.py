@@ -1,6 +1,8 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from drf_extra_fields.fields import Base64ImageField
+from rest_framework.exceptions import ValidationError
+from django.core.files.storage import default_storage
 from djoser.serializers import (
     UserSerializer as DjoserUserSerializer
 )
@@ -9,6 +11,27 @@ from recipes.models import Recipe, Tag, Ingredient, ShoppingCart, Favorite
 from users.models import Sub
 
 User = get_user_model()
+
+
+class RemoveRelationSerializer(serializers.Serializer):
+    recipe = serializers.PrimaryKeyRelatedField(queryset=Recipe.objects.all())
+
+    def validate(self, attrs):
+        request = self.context['request']
+        recipe = attrs['recipe']
+        model = self.context['model']
+
+        relation = model.objects.filter(user=request.user, recipe=recipe)
+        if not relation.exists():
+            raise serializers.ValidationError(
+                f'Рецепт не найден в {model._meta.verbose_name}'
+            )
+        attrs['relation'] = relation
+        return attrs
+
+    def delete_relation(self):
+        relation = self.validated_data['relation']
+        relation.delete()
 
 
 class IngSerializer(serializers.ModelSerializer):
@@ -47,13 +70,35 @@ class UserSerializer(DjoserUserSerializer):
             'avatar'
         )
         read_only_fields = (
-            'id',
-            'is_subscribed'
+            'is_subscribed',
         )
 
 
 class AvatarSerializer(serializers.Serializer):
-    avatar = Base64ImageField(required=True)
+    avatar = Base64ImageField()
+
+
+class AvatarDeleteSerializer(serializers.Serializer):
+
+    def validate(self, attrs):
+        user = self.context['request'].user
+        if not user.avatar:
+            raise ValidationError('Аватар не найден')
+        return attrs
+
+    def save(self, **kwargs):
+        user = self.context['request'].user
+        avatar_path = user.avatar.path
+
+        try:
+            if default_storage.exists(avatar_path):
+                default_storage.delete(avatar_path)
+        except (OSError, IOError) as err:
+            raise ValidationError('Ошибка при удалении файла аватара') from err
+
+        user.avatar = None
+        user.save()
+        return user
 
 
 class SimRecipeSerializer(serializers.ModelSerializer):
@@ -66,7 +111,6 @@ class SimRecipeSerializer(serializers.ModelSerializer):
             'cooking_time'
         )
         read_only_fields = (
-            'id',
             'name',
             'image',
             'cooking_time'
@@ -94,7 +138,6 @@ class UserSubSerializer(UserSerializer):
         )
         read_only_fields = (
             'email',
-            'id',
             'username',
             'first_name',
             'last_name',
@@ -139,6 +182,7 @@ class UserSubSerializer(UserSerializer):
 
 
 class SubscriptionDeleteSerializer(serializers.Serializer):
+
     def validate(self, attrs):
         request = self.context.get('request')
         view = self.context.get('view')
@@ -154,7 +198,6 @@ class SubscriptionDeleteSerializer(serializers.Serializer):
 
 class FavoriteShoppingCartSerializer(serializers.ModelSerializer):
     user = serializers.HiddenField(default=serializers.CurrentUserDefault())
-    recipe = serializers.PrimaryKeyRelatedField(queryset=Recipe.objects.all())
 
     class Meta:
         fields = ('user', 'recipe')
@@ -170,7 +213,7 @@ class FavoriteSerializer(FavoriteShoppingCartSerializer):
 
         if Favorite.objects.filter(user=user, recipe=recipe).exists():
             raise serializers.ValidationError(
-                f"Рецепт '{recipe.name}' уже в избранном"
+                f'Рецепт "{recipe.name}" уже в избранном'
             )
         return data
 
@@ -189,7 +232,7 @@ class ShoppingCartSerializer(FavoriteShoppingCartSerializer):
 
         if ShoppingCart.objects.filter(user=user, recipe=recipe).exists():
             raise serializers.ValidationError(
-                f"Рецепт '{recipe.name}' уже в корзине покупок"
+                f'Рецепт "{recipe.name}" уже в корзине покупок'
             )
         return data
 

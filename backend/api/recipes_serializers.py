@@ -21,7 +21,7 @@ class RecipeIngSerializer(serializers.ModelSerializer):
         read_only=True,
     )
     amount = serializers.IntegerField(
-        validators=[MinValueValidator(1)]
+        validators=(MinValueValidator(1),)
     )
     measurement_unit = serializers.CharField(
         source='ingredient.measurement_unit',
@@ -48,9 +48,9 @@ class RecipeSerializer(serializers.ModelSerializer):
         queryset=Tag.objects.all(),
         many=True,
     )
-    image = Base64ImageField(required=True)
+    image = Base64ImageField()
     cooking_time = serializers.IntegerField(
-        validators=[MinValueValidator(1)]
+        validators=(MinValueValidator(1),)
     )
     is_in_shopping_cart = serializers.SerializerMethodField()
     is_favorited = serializers.SerializerMethodField()
@@ -79,6 +79,8 @@ class RecipeSerializer(serializers.ModelSerializer):
         return rep
 
     def validate(self, data):
+        request = self.context.get('request')
+        method = request.method if request else None
         tags = data.get('tags', [])
         if not tags:
             raise serializers.ValidationError(
@@ -95,20 +97,26 @@ class RecipeSerializer(serializers.ModelSerializer):
                 {'ingredients': 'Поле ingredients не может быть пустым'}
             )
 
-        ingredients_ids = []
-        for ingredient_data in ingredients:
-            ingredient_id = ingredient_data['ingredient']['id'].id
-            ingredients_ids.append(ingredient_id)
+        ingredients_ids = [
+            i_data['ingredient']['id'].id for i_data in ingredients
+        ]
 
         if len(ingredients_ids) != len(set(ingredients_ids)):
             raise serializers.ValidationError(
                 {'ingredients': 'Дублирование ингредиентов не допускается.'}
             )
-        image = data.get('image')
-        if not image:
-            raise serializers.ValidationError(
-                {'image': 'Изображение обязательно для заполнения'}
-            )
+        if method == 'POST':
+            if not data.get('image'):
+                raise serializers.ValidationError(
+                    {'image': 'Изображение обязательно для заполнения.'}
+                )
+        elif method in ['PUT', 'PATCH']:
+            if 'image' in self.initial_data:
+                img = self.initial_data.get('image')
+                if img in [None, '', 'null']:
+                    raise serializers.ValidationError(
+                        {'image': 'Пустое изображение недопустимо.'}
+                    )
 
         return data
 

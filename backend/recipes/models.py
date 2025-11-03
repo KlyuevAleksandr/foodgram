@@ -125,18 +125,22 @@ class RecipeIng(models.Model):
 class UserRecipeRelation(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
+        verbose_name='Пользователь',
         on_delete=models.CASCADE,
     )
     recipe = models.ForeignKey(
         Recipe,
+        verbose_name='Рецепт',
         on_delete=models.CASCADE,
     )
 
     class Meta:
         abstract = True
+        verbose_name = 'Связь пользователя с рецептом'
+        verbose_name_plural = 'Связи пользователей с рецептами'
         constraints = [
             models.UniqueConstraint(
-                fields=['user', 'recipe'],
+                fields=('user', 'recipe'),
                 name='unique_%(class)s',
             ),
         ]

@@ -73,7 +73,6 @@ DATABASES = {
     },
 }
 
-
 AUTHENTICATION_BACKENDS = (
     'django.contrib.auth.backends.ModelBackend',
 )
@@ -96,7 +95,6 @@ AUTH_PASSWORD_VALIDATORS = (
                 'password_validation.NumericPasswordValidator',
     },
 )
-
 
 REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS':
@@ -121,8 +119,8 @@ DJOSER = {
         'current_user': 'api.serializers.UserSerializer',
     },
     'PERMISSIONS': {
-        'user': ('rest_framework.permissions.IsAuthenticated', ),
-        'user_list': ('rest_framework.permissions.AllowAny', ),
+        'user': ('rest_framework.permissions.IsAuthenticated',),
+        'user_list': ('rest_framework.permissions.AllowAny',),
     }
 }
 
@@ -145,4 +143,4 @@ MEDIA_ROOT = 'media'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-CSRF_TRUSTED_ORIGINS = ('https://*', )
+CSRF_TRUSTED_ORIGINS = ('https://*',)

@@ -25,8 +25,10 @@ from .recipes_permissions import IsAuthorOrReadOnly
 from .recipes_serializers import (
     RecipeSerializer,
 )
-from .serializers import SimRecipeSerializer, FavoriteSerializer, \
-    ShoppingCartSerializer
+from .serializers import (
+    SimRecipeSerializer, FavoriteSerializer,
+    ShoppingCartSerializer, RemoveRelationSerializer
+)
 from .recipes_filters import RecipeFilter
 
 
@@ -60,27 +62,23 @@ class RecipeViewSet(viewsets.ModelViewSet):
             status=status.HTTP_201_CREATED
         )
 
-    @staticmethod
-    def _remove_relation(request, pk, model):
-        recipe = get_object_or_404(Recipe, pk=pk)
-        deleted_count, _ = model.objects.filter(
-            user=request.user,
-            recipe=recipe
-        ).delete()
+    def _remove_relation(self, request, pk, model):
+        recipe = self.get_object()
 
-        if deleted_count == 0:
-            return response.Response(
-                {'errors': f'Рецепт не найден в {model._meta.verbose_name}'},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+        serializer = RemoveRelationSerializer(
+            data={'recipe': recipe.id},
+            context={'request': request, 'model': model}
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.delete_relation()
 
         return response.Response(status=status.HTTP_204_NO_CONTENT)
 
     @decorators.action(
         detail=True,
-        methods=["post"],
-        url_name="favorite",
-        permission_classes=[permissions.IsAuthenticated],
+        methods=('post',),
+        url_name='favorite',
+        permission_classes=(permissions.IsAuthenticated,),
     )
     def favorite(self, request, pk=None):
         return self._add_relation(
@@ -93,9 +91,9 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     @decorators.action(
         detail=True,
-        methods=["post"],
-        url_name="shopping_cart",
-        permission_classes=[permissions.IsAuthenticated],
+        methods=('post',),
+        url_name='shopping_cart',
+        permission_classes=(permissions.IsAuthenticated,),
     )
     def shopping_cart(self, request, pk=None):
         return self._add_relation(
@@ -120,16 +118,17 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     @decorators.action(
         detail=False,
-        methods=(
-            'get',
-        ),
+        methods=('get',),
         url_path='download_shopping_cart',
         permission_classes=(permissions.IsAuthenticated,),
     )
     def download_shopping_cart(self, request):
         recipes = Recipe.objects.filter(
-            shopping_carts__user=request.user
-        ).prefetch_related('recipe_ingredients__ingredient', 'author')
+            shopping_carts__in=request.user.shopping_carts.all()
+        ).prefetch_related(
+            'recipe_ingredients__ingredient',
+            'author'
+        )
 
         ingredients = (
             RecipeIng.objects.filter(recipe__in=recipes)
