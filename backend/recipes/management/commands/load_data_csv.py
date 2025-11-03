@@ -6,7 +6,7 @@ from recipes.models import Ingredient
 
 
 class Command(BaseCommand):
-    help_text = 'Загрузка списка ингредиентов в базу данных'
+    help_text = 'Загрузка списка ингредиентов'
 
     def execute_command(self):
         p = 'data/ingredients.csv'
